@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@libs-scripts-mep/grav-fw-pvi": "^2.2.1",
+    "@libs-scripts-mep/rast-pvi": "^3.1.0",
+    "@libs-scripts-mep/reles-daq": "^2.0.1",
+    "@libs-scripts-mep/script-loader": "^1.0.3",
+    "@libs-scripts-mep/std-control": "^2.0.1",
+    "@libs-scripts-mep/utils-pvi": "^3.0.0"
+  }
+}
