@@ -69,7 +69,7 @@ class TestScript {
         //#region Rast
         await UI.setMsg("Iniciando rastreamento...")
         RastUtil.setValidations(RastUtil.ENABLED, RastUtil.ENABLED, RastUtil.ENABLED, RastUtil.DISABLED)
-        this.Rast = new RastPVI(this.EventMap, this.Event, this.TestComponents) //BS-80.2/REV2   FX-48.1/REV1
+        this.Rast = new RastPVI(this.EventMap, this.Event, this.TestComponents) //BS-80.2/REV2   FX-72.1/REV0
         await RastUtil.setOperador()
         await this.Rast.setSerialNumber() //1000008256844
 
@@ -80,6 +80,55 @@ class TestScript {
         //#endregion Rast
 
         //#region Start
+        /*
+        chama uma função para detectar a montagem o diodo
+
+        chama uma função para detectar curto na entrada
+
+        chama função para detectar curto no diodo
+
+        chama função para detectar curto no IGBT
+
+        descarga cap
+
+        gravo firmware
+
+        testo o acionamento do motor pelo potenciometro
+
+        mudo a alimentação para testar a tensão máxima na saída (deve ser igual em 110 e em 220Vac)
+        
+        descarga cap
+        */
+
+        const detectDiode = await GeneralCompose.DetectDiode()
+        if (detectDiode) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+        }
+
+        const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck()
+        if (shortCircuitCheck) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+        }
+
+        const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck()
+        if (reverseDiodeCheck) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+        }
+
+        const integrityIGBT = await GeneralCompose.IntegrityIGBT()
+        if (integrityIGBT) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+        }
+
+        await GeneralCompose.Discharge()
 
         //#endregion
     }
