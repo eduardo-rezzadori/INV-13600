@@ -99,7 +99,8 @@ class TestScript {
         
         descarga cap
         */
-
+       
+        await UI.setMsg("Verificando a montagem do diodo...")
         const detectDiode = await GeneralCompose.DetectDiode()
         if (detectDiode) {
             // aprovar
@@ -107,6 +108,7 @@ class TestScript {
             // reprovar e finalizar
         }
 
+        await UI.setMsg("Verificando a integridade da fonte de alimentação...")
         const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck()
         if (shortCircuitCheck) {
             // aprovar
@@ -114,6 +116,7 @@ class TestScript {
             // reprovar e finalizar
         }
 
+        await UI.setMsg("Verificando a polaridade do diodo...")
         const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck()
         if (reverseDiodeCheck) {
             // aprovar
@@ -121,6 +124,7 @@ class TestScript {
             // reprovar e finalizar
         }
 
+        await UI.setMsg("Verificando curto-circuito no IGBT...")
         const integrityIGBT = await GeneralCompose.IntegrityIGBT()
         if (integrityIGBT) {
             // aprovar
@@ -128,7 +132,31 @@ class TestScript {
             // reprovar e finalizar
         }
 
+        await UI.setMsg("Descaregando o capacitor...")
         await GeneralCompose.Discharge()
+
+        /* incluir gravação aqui */
+
+        await UI.setMsg("Posicione o potenciômetro no mínimo, conforme a imagem, e pressione avança!")
+        const advance = await UI.advance()
+        if (!advance) {
+            // reprovar e finalizar
+        }
+
+        await UI.setMsg("Energizando o controlador!")
+        const powerUp = await GeneralCompose.PowerUp()
+        if (!powerUp) {
+            // reprovar e finalizar
+        }
+        
+        await UI.setMsg("Posicione o potenciômetro no centro, conforme a imagem")
+        const dutyCicleCheck = await GeneralCompose.DutyCicleCheck()
+        // penso em fazer uma redundancia pela tensão média
+        if (dutyCicleCheck) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+        }
 
         //#endregion
     }
