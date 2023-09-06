@@ -31,7 +31,7 @@ class GeneralCompose {
     static async DetectDiode(input, relayBuffer) {
         DAQRelay.TurnOn(relayBuffer)
 
-        await this.Delay(300)
+        await this.Delay(1000)
 
         if (pvi.daq.in[input].value) {
             return true
@@ -48,7 +48,7 @@ class GeneralCompose {
     static async ShortCircuitCheck(input) {
         pvi.daq.alimenta12()
 
-        await this.Delay(300)
+        await this.Delay(1000)
 
         if (pvi.daq.in[input].value) {
             return true
@@ -67,7 +67,7 @@ class GeneralCompose {
         await this.Delay(300)
 
         pvi.daq.alimenta110()
-        await this.Delay(300)
+        await this.Delay(1000)
 
         if (pvi.daq.in[input].value) {
             return false
@@ -82,6 +82,7 @@ class GeneralCompose {
      * @returns boolean
      */
     static async IntegrityIGBT(input) {
+        this.Delay(300)
         if (pvi.daq.in[input].value) {
             return false
         } else {
@@ -95,8 +96,9 @@ class GeneralCompose {
      * @param {int} timeOut 
      * @returns object
      */
-    static async Discharge(input, timeOut = 15000) {
+    static async Discharge(input, relays, timeOut = 15000) {
         this.ShutDown()
+        DAQRelay.TurnOn(relays)
 
         return new Promise((resolve) => {
             pvi.daq.in[input].onChange = (state) => {
@@ -121,16 +123,14 @@ class GeneralCompose {
      * @param {string} input entrada do DAQ responsável pela leitura 
      * @returns boolean
      */
-    static async PowerUp(tensao = "110", input) {
+    static async PowerUp(tensao = "110", input = "ac1") {
         if (tensao == "110") {
             pvi.daq.alimenta110()
         } else if (tensao == "220") {
             pvi.daq.alimenta220()
         }
 
-        await this.Delay(300)
-
-        return true //remover assim que resolver o bug da ac1
+        await this.Delay(1000)
 
         if (pvi.daq.in[input].value) {
             return true
@@ -160,6 +160,31 @@ class GeneralCompose {
                 pvi.daq.in[input].onChange = () => { }
                 resolve({ success: false })
             }, timeOut)
+        })
+    }
+    /**
+     * 
+     * @param {string} input entrada do DAQ responsável pela leitura
+     * @param {float} target valor de tensão esperado no conversor
+     * @param {float} tolerance tolerancia na leitura 
+     * @param {int} timeout 
+     * @returns object
+     */
+    static async VoltageCheck(input, target, tolerance, timeout = 60000) {
+        return new Promise((resolve) => {
+            pvi.daq.in[input].value.onChange = (voltage) => {
+                if ((target - tolerance) < voltage && voltage < (target + tolerance)) {
+                    console.warn("aprovaras")
+                    clearTimeout(timeOutMonitor)
+                    pvi.daq.in[input].value.onChange = () => { }
+                    resolve({ success: true, value: voltage, msg: "" })
+                }
+            }
+            const timeOutMonitor = setTimeout(() => {
+                console.error("f")
+                pvi.daq.in[input].value.onChange = () => { }
+                resolve({ success: false, msg: "" })
+            }, timeout)
         })
     }
 

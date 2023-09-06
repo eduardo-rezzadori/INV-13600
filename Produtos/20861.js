@@ -51,7 +51,9 @@ class TestScript {
                 }
             })
             .catch(async (error) => {
-                this.Std.MoveUp()
+                GeneralCompose.ShutDown()
+
+                // this.Std.MoveUp()
                 console.timeEnd("Run")
                 this.TestReport.AddTesteFuncional("Exception", error, -1, false)
                 UI.displayReport(this.TestReport)
@@ -66,12 +68,12 @@ class TestScript {
             await UI.modalInfo(this.TestComponents.Base.Image, `Utlize a base ${this.TestComponents.Base.Name}`)
             await UI.modalInfo(this.TestComponents.Fixture.Image, `Utlize o fixture ${this.TestComponents.Fixture.Name}`)
             await UI.modalInfo("Imagens/setupTrafoUSB.jpeg", "Conecte o trafo e o USB na base conforme indicado")
-            await UI.modalInfo("Imagens/gravador.jpg", "Conecte o gravador à tomada, ao USB e à base, utilizando o isolador, conforme indicado")
+            // await UI.modalInfo("Imagens/gravador.jpg", "Conecte o gravador à tomada, ao USB e à base, utilizando o isolador, conforme indicado")
         }
 
         this.Std.EmergencyObserver().then((info) => { console.error(info); alert(info.msg); return true })
-        const moveUpInit = await this.Std.MoveUp()
-        if (!moveUpInit.result) { this.TestReport.AddTesteFuncional("Sobe Motor [Inicio]", moveUpInit.msg, -1, false); return true }
+        // const moveUpInit = await this.Std.MoveUp()
+        // if (!moveUpInit.result) { this.TestReport.AddTesteFuncional("Sobe Motor [Inicio]", moveUpInit.msg, -1, false); return true }
         //#region Infra Setup
 
         //#region Rast
@@ -88,9 +90,13 @@ class TestScript {
         //#endregion Rast
 
         //#region Start
-             
+        await UI.setMsg("Posicione o controlador na jiga e pressione o bimanual.")
+        const moveDown = await this.Std.MoveDown(15000, false)
+        if (!moveDown.result) { this.TestReport.AddTesteFuncional("Desce Motor", "Falha ao atuar na descida do motor", -1, false); return true }
+
         await UI.setMsg("Verificando a montagem do diodo...")
         DAQRelay.AddRelay(2, this.Relays)
+        DAQRelay.AddRelay(8, this.Relays)
         const detectDiode = await GeneralCompose.DetectDiode("ac1", this.Relays)
         if (detectDiode) {
             // aprovar
@@ -99,37 +105,41 @@ class TestScript {
             throw "diodo não montado"
         }
         DAQRelay.RemoveRelay(2, this.Relays)
-        DAQRelay.TurnOn()
+        DAQRelay.RemoveRelay(8, this.Relays)
+        DAQRelay.TurnOn(this.Relays)
 
-        // await UI.setMsg("Verificando a integridade da fonte de alimentação...")
-        // const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck("ac1")
-        // if (shortCircuitCheck) {
-        //     // aprovar
-        // } else {
-        //     // reprovar e finalizar
-        //     throw "curto na fonte"
-        // }
+        await UI.setMsg("Verificando a integridade da fonte de alimentação...")
+        const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck("ac1")
+        if (shortCircuitCheck) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+            throw "curto na fonte"
+        }
 
-        // await UI.setMsg("Verificando a polaridade do diodo...")
-        // const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck("ac2")
-        // if (reverseDiodeCheck) {
-        //     // aprovar
-        // } else {
-        //     // reprovar e finalizar
-        //     throw "diodo virado"
-        // }
+        await UI.setMsg("Verificando a polaridade do diodo...")
+        const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck("ac2")
+        if (reverseDiodeCheck) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+            throw "diodo virado"
+        }
 
-        // await UI.setMsg("Verificando curto-circuito no IGBT...")
-        // const integrityIGBT = await GeneralCompose.IntegrityIGBT("ac3")
-        // if (integrityIGBT) {
-        //     // aprovar
-        // } else {
-        //     // reprovar e finalizar
-        //     throw "curto no igbt"
-        // }
+        await UI.setMsg("Verificando curto-circuito no IGBT...")
+        const integrityIGBT = await GeneralCompose.IntegrityIGBT("ac3")
+        if (integrityIGBT) {
+            // aprovar
+        } else {
+            // reprovar e finalizar
+            throw "curto no igbt"
+        }
 
-        // await UI.setMsg("Descaregando o capacitor...")
-        // await GeneralCompose.Discharge()
+        await UI.setMsg("Descaregando o capacitor...")
+        DAQRelay.AddRelay(18, this.Relays)
+        await GeneralCompose.Discharge("ac1", this.Relays)
+        DAQRelay.RemoveRelay(18, this.Relays)
+        DAQRelay.TurnOn(this.Relays)
 
         // const protect = (finalFirmwarePath.substring(0, finalFirmwarePath.lastIndexOf("\\"))) + "/protect.hex"
         // // let OptionBytesDespr = "I:/Documentos/Softwares/STM8/despr_it.hex"
@@ -142,10 +152,6 @@ class TestScript {
         //     throw "nao gravou"
         // }
 
-        await UI.setMsg("Posicione o controlador na jiga e pressione o bimanual.")
-        const moveDown = await this.Std.MoveDown(15000, false)
-        if (!moveDown.result) { this.TestReport.AddTesteFuncional("Desce Motor", "Falha ao atuar na descida do motor", -1, false); return true }
-        
         await UI.setMsg("Posicione o potenciômetro no mínimo, conforme a imagem, e pressione avança!")
         await UI.setImage("Imagens\\pot-min.png")
         const advance = await UI.advance()
@@ -158,25 +164,46 @@ class TestScript {
         if (!powerUp) {
             // reprovar e finalizar
         }
-        
+
+        await UI.setMsg("O LED acionou?")
+        const yesOrNo = await UI.yesNo()
+        if (!yesOrNo) {
+            // reprovar e finalizar
+        }
+
         await UI.setMsg("Posicione o potenciômetro no centro, conforme a imagem")
+        await UI.setImage("Imagens\\pot-centro.png")
+        DAQRelay.AddRelay(16, this.Relays)
+        DAQRelay.TurnOn(this.Relays)
         // let dutyCicleCheck = await GeneralCompose.DutyCicleCheck()
-        // penso em fazer uma redundancia pela tensão média
-        if (dutyCicleCheck) {
+        let voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 1.7, 0.3)
+        if (voltageCheck) {
             // aprovar
         } else {
             // reprovar e finalizar
         }
 
-        await UI.setMsg("Posicione o potenciômetro no máximo, conforme a imagem")
+        await UI.setMsg("Posicione o potenciômetro no máximo")
+        await UI.setImage("Imagens\\padrao.png")
+        voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 2.3, 0.3)
         // dutyCicleCheck = await GeneralCompose.DutyCicleCheck() // verificar se consigo ler duty aqui
         // penso em fazer uma redundancia pela tensão média
-        if (dutyCicleCheck) {
+        if (voltageCheck) {
             // aprovar
         } else {
             // reprovar e finalizar
         }
 
+        await UI.setMsg("Descaregando o capacitor...")
+        DAQRelay.AddRelay(18, this.Relays)
+        const promise1 = GeneralCompose.Discharge("ac1", this.Relays)
+
+        await UI.setMsg("Posicione o potenciometro no mínimo novamente e pressione avanca")
+        const promise2 = UI.advance()
+
+        const promises = await Promise.all([promise1, promise2])
+
+        throw "só remover isso"
         //#endregion
     }
 }
