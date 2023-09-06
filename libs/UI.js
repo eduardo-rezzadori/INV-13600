@@ -198,7 +198,7 @@ class UI {
         html_modal.style.display = ""
         html_modalTitle.innerText = "Reprovado"
         html_modalTitle.style.color = "red"
-        html_modalImg.src = "images/NOK.png"
+        html_modalImg.src = "Imagens/NOK.png"
         html_txtModal.style.display = ""
         await this.waitToRender()
     }

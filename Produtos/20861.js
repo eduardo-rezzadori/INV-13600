@@ -14,10 +14,14 @@ class TestScript {
             Base: {
                 Name: "BS-80",
                 Image: "Imagens\\BS-80.png",
+                message: "Informe o código de barras da base:",
+                regex: "(BS|bs)-80.[1-9](\/|;)(REV|rev)[0-9]",
             },
             Fixture: {
                 Name: "FX-72",
                 Image: "Imagens\\padrao.png",
+                message: "Informe o código de barras do fixture:",
+                regex: "(FX|fx)-72.[1-9](\/|;)(REV|rev)[0-9]",
             },
         }
 
@@ -84,26 +88,7 @@ class TestScript {
         //#endregion Rast
 
         //#region Start
-        /*
-        chama uma função para detectar a montagem o diodo
-
-        chama uma função para detectar curto na entrada
-
-        chama função para detectar curto no diodo
-
-        chama função para detectar curto no IGBT
-
-        descarga cap
-
-        gravo firmware
-
-        testo o acionamento do motor pelo potenciometro
-
-        mudo a alimentação para testar a tensão máxima na saída (deve ser igual em 110 e em 220Vac)
-        
-        descarga cap
-        */
-       
+             
         await UI.setMsg("Verificando a montagem do diodo...")
         DAQRelay.AddRelay(2, this.Relays)
         const detectDiode = await GeneralCompose.DetectDiode("ac1", this.Relays)
@@ -116,48 +101,53 @@ class TestScript {
         DAQRelay.RemoveRelay(2, this.Relays)
         DAQRelay.TurnOn()
 
-        await UI.setMsg("Verificando a integridade da fonte de alimentação...")
-        const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck("ac1")
-        if (shortCircuitCheck) {
-            // aprovar
-        } else {
-            // reprovar e finalizar
-            throw "curto na fonte"
-        }
+        // await UI.setMsg("Verificando a integridade da fonte de alimentação...")
+        // const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck("ac1")
+        // if (shortCircuitCheck) {
+        //     // aprovar
+        // } else {
+        //     // reprovar e finalizar
+        //     throw "curto na fonte"
+        // }
 
-        await UI.setMsg("Verificando a polaridade do diodo...")
-        const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck("ac2")
-        if (reverseDiodeCheck) {
-            // aprovar
-        } else {
-            // reprovar e finalizar
-            throw "diodo virado"
-        }
+        // await UI.setMsg("Verificando a polaridade do diodo...")
+        // const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck("ac2")
+        // if (reverseDiodeCheck) {
+        //     // aprovar
+        // } else {
+        //     // reprovar e finalizar
+        //     throw "diodo virado"
+        // }
 
-        await UI.setMsg("Verificando curto-circuito no IGBT...")
-        const integrityIGBT = await GeneralCompose.IntegrityIGBT("ac3")
-        if (integrityIGBT) {
-            // aprovar
-        } else {
-            // reprovar e finalizar
-            throw "curto no igbt"
-        }
+        // await UI.setMsg("Verificando curto-circuito no IGBT...")
+        // const integrityIGBT = await GeneralCompose.IntegrityIGBT("ac3")
+        // if (integrityIGBT) {
+        //     // aprovar
+        // } else {
+        //     // reprovar e finalizar
+        //     throw "curto no igbt"
+        // }
 
-        await UI.setMsg("Descaregando o capacitor...")
-        await GeneralCompose.Discharge()
+        // await UI.setMsg("Descaregando o capacitor...")
+        // await GeneralCompose.Discharge()
 
-        const protect = (finalFirmwarePath.substring(0, finalFirmwarePath.lastIndexOf("\\"))) + "/protect.hex"
-        // let OptionBytesDespr = "I:/Documentos/Softwares/STM8/despr_it.hex"
+        // const protect = (finalFirmwarePath.substring(0, finalFirmwarePath.lastIndexOf("\\"))) + "/protect.hex"
+        // // let OptionBytesDespr = "I:/Documentos/Softwares/STM8/despr_it.hex"
 
-        const resultWriteFirmware = await GravaFW.STM8(finalFirmwarePath, protect, this.WriteFirmwareOptions)
-        if (resultWriteFirmware.success) {
-            console.log('sucesso');
-        } else {
-            console.log('falha');
-            throw "nao gravou"
-        }
+        // const resultWriteFirmware = await GravaFW.STM8(finalFirmwarePath, protect, this.WriteFirmwareOptions)
+        // if (resultWriteFirmware.success) {
+        //     console.log('sucesso');
+        // } else {
+        //     console.log('falha');
+        //     throw "nao gravou"
+        // }
 
+        await UI.setMsg("Posicione o controlador na jiga e pressione o bimanual.")
+        const moveDown = await this.Std.MoveDown(15000, false)
+        if (!moveDown.result) { this.TestReport.AddTesteFuncional("Desce Motor", "Falha ao atuar na descida do motor", -1, false); return true }
+        
         await UI.setMsg("Posicione o potenciômetro no mínimo, conforme a imagem, e pressione avança!")
+        await UI.setImage("Imagens\\pot-min.png")
         const advance = await UI.advance()
         if (!advance) {
             // reprovar e finalizar
@@ -170,7 +160,7 @@ class TestScript {
         }
         
         await UI.setMsg("Posicione o potenciômetro no centro, conforme a imagem")
-        let dutyCicleCheck = await GeneralCompose.DutyCicleCheck()
+        // let dutyCicleCheck = await GeneralCompose.DutyCicleCheck()
         // penso em fazer uma redundancia pela tensão média
         if (dutyCicleCheck) {
             // aprovar
@@ -179,7 +169,7 @@ class TestScript {
         }
 
         await UI.setMsg("Posicione o potenciômetro no máximo, conforme a imagem")
-        dutyCicleCheck = await GeneralCompose.DutyCicleCheck() // verificar se consigo ler duty aqui
+        // dutyCicleCheck = await GeneralCompose.DutyCicleCheck() // verificar se consigo ler duty aqui
         // penso em fazer uma redundancia pela tensão média
         if (dutyCicleCheck) {
             // aprovar

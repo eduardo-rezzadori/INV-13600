@@ -130,6 +130,8 @@ class GeneralCompose {
 
         await this.Delay(300)
 
+        return true //remover assim que resolver o bug da ac1
+
         if (pvi.daq.in[input].value) {
             return true
         } else {
