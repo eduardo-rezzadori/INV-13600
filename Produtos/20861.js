@@ -83,7 +83,7 @@ class TestScript {
         if (!rastInitSucess) { this.TestReport.AddTesteFuncional("Rastreamento Init", this.Rast.InitInfo.Message, -1, false); return }
         UI.setTitle(this.Rast.InitInfo.item.OpInfo.Product.Name)
         let finalFirmwarePath = this.Rast.InitInfo.item.OpInfo.OpProcesses.find(process => process.ID == "TF").Firmware
-        finalFirmwarePath = "I:\\Documentos\\Softwares\\STM8\\STM8S003F3\\Inv-136\\136v63\\136v63_1.3.0.hex"
+        finalFirmwarePath = "I:\\Documentos\\Softwares\\STM8\\STM8S003F3\\Inv-136\\136v63\\136v63_1.3.0.hex" //remover, debug
         //#endregion Rast
 
         //#region Start
@@ -178,6 +178,7 @@ class TestScript {
         }
 
         await UI.setMsg("O LED acionou?")
+        await UI.setImage("Imagens\\led.jpeg")
         const yesOrNo = await UI.yesNo()
         if (!yesOrNo) {
             this.TestReport.AddTesteFuncional("LED", `Operador informou que o LED não acionou`, -1, false)

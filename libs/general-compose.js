@@ -175,7 +175,6 @@ class GeneralCompose {
         return new Promise((resolve) => {
             pvi.daq.in[input].value.onChange = (voltage) => {
                 if ((target - tolerance) < voltage && voltage < (target + tolerance)) {
-                    console.warn("aprovaras")
                     clearTimeout(timeOutMonitor)
                     pvi.daq.in[input].value.onChange = () => { }
                     resolve({ success: true, value: voltage, msg: "" })
