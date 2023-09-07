@@ -151,7 +151,7 @@ class TestScript {
         if (resultWriteFirmware.sucess) {
             this.TestReport.AddTesteFuncional("Gravação", `Caminho: ${finalFirmwarePath}`, -1, true)
         } else {
-            this.TestReport.AddTesteFuncional("Gravação", `Mensagem de erro: ${msg}`, -1, false)
+            this.TestReport.AddTesteFuncional("Gravação", `Mensagem de erro: ${resultWriteFirmware.msg}`, -1, false)
             return
         }
 
