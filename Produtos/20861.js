@@ -33,9 +33,6 @@ class TestScript {
         this.Run()
             .then(async (noTracking) => {
                 this.Std.MoveUp()
-                this.Controller.Processing = false
-                this.VoltageReader.Processing = false
-                await SerialPVIUtil.closeAllPorts()
                 GeneralCompose.ShutDown()
                 console.timeEnd("Run")
 
@@ -52,8 +49,7 @@ class TestScript {
             })
             .catch(async (error) => {
                 GeneralCompose.ShutDown()
-
-                // this.Std.MoveUp()
+                this.Std.MoveUp()
                 console.timeEnd("Run")
                 this.TestReport.AddTesteFuncional("Exception", error, -1, false)
                 UI.displayReport(this.TestReport)
@@ -68,12 +64,12 @@ class TestScript {
             await UI.modalInfo(this.TestComponents.Base.Image, `Utlize a base ${this.TestComponents.Base.Name}`)
             await UI.modalInfo(this.TestComponents.Fixture.Image, `Utlize o fixture ${this.TestComponents.Fixture.Name}`)
             await UI.modalInfo("Imagens/setupTrafoUSB.jpeg", "Conecte o trafo e o USB na base conforme indicado")
-            // await UI.modalInfo("Imagens/gravador.jpg", "Conecte o gravador à tomada, ao USB e à base, utilizando o isolador, conforme indicado")
+            await UI.modalInfo("Imagens/gravador.jpg", "Conecte o gravador à tomada, ao USB e à base, utilizando o isolador, conforme indicado")
         }
 
         this.Std.EmergencyObserver().then((info) => { console.error(info); alert(info.msg); return true })
-        // const moveUpInit = await this.Std.MoveUp()
-        // if (!moveUpInit.result) { this.TestReport.AddTesteFuncional("Sobe Motor [Inicio]", moveUpInit.msg, -1, false); return true }
+        const moveUpInit = await this.Std.MoveUp()
+        if (!moveUpInit.result) { this.TestReport.AddTesteFuncional("Sobe Motor [Inicio]", moveUpInit.msg, -1, false); return true }
         //#region Infra Setup
 
         //#region Rast
@@ -86,7 +82,8 @@ class TestScript {
         const rastInitSucess = await this.Rast.init()
         if (!rastInitSucess) { this.TestReport.AddTesteFuncional("Rastreamento Init", this.Rast.InitInfo.Message, -1, false); return }
         UI.setTitle(this.Rast.InitInfo.item.OpInfo.Product.Name)
-        const finalFirmwarePath = this.Rast.InitInfo.item.OpInfo.OpProcesses.find(process => process.ID == "TF").Firmware
+        let finalFirmwarePath = this.Rast.InitInfo.item.OpInfo.OpProcesses.find(process => process.ID == "TF").Firmware
+        finalFirmwarePath = "I:\\Documentos\\Softwares\\STM8\\STM8S003F3\\Inv-136\\136v63\\136v63_1.3.0.hex"
         //#endregion Rast
 
         //#region Start
@@ -99,10 +96,10 @@ class TestScript {
         DAQRelay.AddRelay(8, this.Relays)
         const detectDiode = await GeneralCompose.DetectDiode("ac1", this.Relays)
         if (detectDiode) {
-            // aprovar
+            this.TestReport.AddTesteFuncional("Detecção D2", `Montagem detectada`, -1, true)
         } else {
-            // reprovar e finalizar
-            throw "diodo não montado"
+            this.TestReport.AddTesteFuncional("Detecção D2", `Montagem não detectada`, -1, false)
+            return
         }
         DAQRelay.RemoveRelay(2, this.Relays)
         DAQRelay.RemoveRelay(8, this.Relays)
@@ -111,28 +108,28 @@ class TestScript {
         await UI.setMsg("Verificando a integridade da fonte de alimentação...")
         const shortCircuitCheck = await GeneralCompose.ShortCircuitCheck("ac1")
         if (shortCircuitCheck) {
-            // aprovar
+            this.TestReport.AddTesteFuncional("Fonte", `Ok`, -1, true)
         } else {
-            // reprovar e finalizar
-            throw "curto na fonte"
+            this.TestReport.AddTesteFuncional("Fonte", `Possível curto-circuito na fonte, não foi detectaada tensão em MOTOR( + )`, -1, false)
+            return
         }
 
         await UI.setMsg("Verificando a polaridade do diodo...")
         const reverseDiodeCheck = await GeneralCompose.ReverseDiodeCheck("ac2")
         if (reverseDiodeCheck) {
-            // aprovar
+            this.TestReport.AddTesteFuncional("Polaridade D2", `Ok`, -1, true)
         } else {
-            // reprovar e finalizar
-            throw "diodo virado"
+            this.TestReport.AddTesteFuncional("Polaridade D2", `Diodo em curto ou invertido` - 1, false)
+            return
         }
 
         await UI.setMsg("Verificando curto-circuito no IGBT...")
         const integrityIGBT = await GeneralCompose.IntegrityIGBT("ac3")
         if (integrityIGBT) {
-            // aprovar
+            this.TestReport.AddTesteFuncional("IGBT", `Ok`, -1, true)
         } else {
-            // reprovar e finalizar
-            throw "curto no igbt"
+            this.TestReport.AddTesteFuncional("IGBT", `Possível curto-circuito no IGBT` - 1, false)
+            return
         }
 
         await UI.setMsg("Descaregando o capacitor...")
@@ -141,57 +138,85 @@ class TestScript {
         DAQRelay.RemoveRelay(18, this.Relays)
         DAQRelay.TurnOn(this.Relays)
 
-        // const protect = (finalFirmwarePath.substring(0, finalFirmwarePath.lastIndexOf("\\"))) + "/protect.hex"
-        // // let OptionBytesDespr = "I:/Documentos/Softwares/STM8/despr_it.hex"
+        await UI.setMsg("Gravando Firmware...")
+        DAQRelay.AddRelay(5, this.Relays)
+        DAQRelay.TurnOn(this.Relays)
 
-        // const resultWriteFirmware = await GravaFW.STM8(finalFirmwarePath, protect, this.WriteFirmwareOptions)
-        // if (resultWriteFirmware.success) {
-        //     console.log('sucesso');
-        // } else {
-        //     console.log('falha');
-        //     throw "nao gravou"
-        // }
+        //#region Gravação
+        const protect = (finalFirmwarePath.substring(0, finalFirmwarePath.lastIndexOf("\\"))) + "/opt.hex"
+        let OptionBytesDespr = "I:/Documentos/Softwares/STM8/despr_it.hex"
+        await GravaFW.STM8(null, OptionBytesDespr, this.WriteFirmwareOptions)
+
+        const resultWriteFirmware = await GravaFW.STM8(finalFirmwarePath, protect, this.WriteFirmwareOptions)
+        if (resultWriteFirmware.sucess) {
+            this.TestReport.AddTesteFuncional("Gravação", `Caminho: ${finalFirmwarePath}`, -1, true)
+        } else {
+            this.TestReport.AddTesteFuncional("Gravação", `Mensagem de erro: ${msg}`, -1, false)
+            return
+        }
+
+        DAQRelay.RemoveRelay(5, this.Relays)
+        DAQRelay.TurnOn(this.Relays)
+        //#endregion
 
         await UI.setMsg("Posicione o potenciômetro no mínimo, conforme a imagem, e pressione avança!")
         await UI.setImage("Imagens\\pot-min.png")
         const advance = await UI.advance()
         if (!advance) {
-            // reprovar e finalizar
+            this.TestReport.AddTesteFuncional("Operacional", `Não foi respondido`, -1, false)
+            return
         }
 
         await UI.setMsg("Energizando o controlador!")
         const powerUp = await GeneralCompose.PowerUp()
         if (!powerUp) {
-            // reprovar e finalizar
+            this.TestReport.AddTesteFuncional("Energização", `Possível curto-circuito na fonte, não foi detectaada tensão em MOTOR( + )`, -1, false)
+            UI.setMsg("Descaregando o capacitor...")
+            DAQRelay.AddRelay(18, this.Relays)
+            await GeneralCompose.Discharge("ac1", this.Relays)
+            return
         }
 
         await UI.setMsg("O LED acionou?")
         const yesOrNo = await UI.yesNo()
         if (!yesOrNo) {
-            // reprovar e finalizar
+            this.TestReport.AddTesteFuncional("LED", `Operador informou que o LED não acionou`, -1, false)
+            UI.setMsg("Descaregando o capacitor...")
+            DAQRelay.AddRelay(18, this.Relays)
+            await GeneralCompose.Discharge("ac1", this.Relays)
+            return
+        } else {
+            this.TestReport.AddTesteFuncional("LED", `Informado o funcionamento do LED pelo operador`, -1, true)
         }
 
         await UI.setMsg("Posicione o potenciômetro no centro, conforme a imagem")
         await UI.setImage("Imagens\\pot-centro.png")
         DAQRelay.AddRelay(16, this.Relays)
         DAQRelay.TurnOn(this.Relays)
-        // let dutyCicleCheck = await GeneralCompose.DutyCicleCheck()
-        let voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 1.7, 0.3)
-        if (voltageCheck) {
-            // aprovar
+
+        let voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 1.7, 0.3, 15000)
+        if (voltageCheck.success) {
+            this.TestReport.AddTesteComponente("Saída 50% 110VAC", -1, voltageCheck.value, 1.7, 0.3, "Chicote/Saída motor", -1, true)
         } else {
-            // reprovar e finalizar
+            this.TestReport.AddTesteComponente("Saída 50% 110VAC", -1, voltageCheck.value, 1.7, 0.3, "Chicote/Saída motor", -1, false)
+            UI.setMsg("Descaregando o capacitor...")
+            DAQRelay.AddRelay(18, this.Relays)
+            await GeneralCompose.Discharge("ac1", this.Relays)
+            return
         }
 
         await UI.setMsg("Posicione o potenciômetro no máximo")
         await UI.setImage("Imagens\\padrao.png")
-        voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 2.3, 0.3)
-        // dutyCicleCheck = await GeneralCompose.DutyCicleCheck() // verificar se consigo ler duty aqui
-        // penso em fazer uma redundancia pela tensão média
+        voltageCheck = await GeneralCompose.VoltageCheck("voltageOrCurrent3", 2.3, 0.15, 15000)
+
         if (voltageCheck) {
-            // aprovar
+            this.TestReport.AddTesteComponente("Saída 100% 110VAC", -1, voltageCheck.value, 2.3, 0.15, "Chicote/Saída motor", -1, true)
         } else {
-            // reprovar e finalizar
+            this.TestReport.AddTesteComponente("Saída 100% 110VAC", -1, voltageCheck.value, 2.3, 0.15, "Chicote/Saída motor", -1, false)
+            UI.setMsg("Descaregando o capacitor...")
+            DAQRelay.AddRelay(18, this.Relays)
+            await GeneralCompose.Discharge("ac1", this.Relays)
+            return
         }
 
         await UI.setMsg("Descaregando o capacitor...")
@@ -201,9 +226,7 @@ class TestScript {
         await UI.setMsg("Posicione o potenciometro no mínimo novamente e pressione avanca")
         const promise2 = UI.advance()
 
-        const promises = await Promise.all([promise1, promise2])
-
-        throw "só remover isso"
+        await Promise.all([promise1, promise2])
         //#endregion
     }
 }

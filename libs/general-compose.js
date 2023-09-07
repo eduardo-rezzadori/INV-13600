@@ -26,12 +26,13 @@ class GeneralCompose {
      * Detecção da montagem do diodo free wheel
      * @param {string} input entrada do DAQ responsável pela leitura
      * @param {Array} relayBuffer buffer de relés
+     * @param {int} delay estabilização do daq
      * @returns boolean
      */
-    static async DetectDiode(input, relayBuffer) {
+    static async DetectDiode(input, relayBuffer, delay = 1000) {
         DAQRelay.TurnOn(relayBuffer)
 
-        await this.Delay(1000)
+        await this.Delay(delay)
 
         if (pvi.daq.in[input].value) {
             return true
@@ -183,7 +184,7 @@ class GeneralCompose {
             const timeOutMonitor = setTimeout(() => {
                 console.error("f")
                 pvi.daq.in[input].value.onChange = () => { }
-                resolve({ success: false, msg: "" })
+                resolve({ success: false, value: pvi.daq.in[input].value.value, msg: "" })
             }, timeout)
         })
     }

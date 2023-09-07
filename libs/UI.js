@@ -187,7 +187,7 @@ class UI {
         html_modal.style.display = ""
         html_modalTitle.innerText = "Aprovado"
         html_modalTitle.style.color = "green"
-        html_modalImg.src = "images/OK.png"
+        html_modalImg.src = "Imagens/OK.png"
         html_txtModal.style.display = "none"
         await this.waitToRender()
     }
